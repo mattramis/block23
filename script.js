@@ -1,135 +1,181 @@
-const newPartyForm = document.querySelector("#new-party-form");
-const partyContainer = document.querySelector("#party-container");
+const playerContainer = document.getElementById("all-players-container");
+const newPlayerFormContainer = document.getElementById("new-player-form");
 
-const PARTIES_API_URL =
-  "http://fsa-async-await.herokuapp.com/api/workshop/parties";
-const GUESTS_API_URL =
-  "http://fsa-async-await.herokuapp.com/api/workshop/guests";
-const RSVPS_API_URL = "http://fsa-async-await.herokuapp.com/api/workshop/rsvps";
-const GIFTS_API_URL = "http://fsa-async-await.herokuapp.com/api/workshop/gifts";
+// Add your cohort name to the cohortName variable below, replacing the 'COHORT-NAME' placeholder
+const cohortName = "2109-UNF-HY-WEB-PT";
+// Use the APIURL variable for fetch requests
+const APIURL = `https://fsa-puppy-bowl.herokuapp.com/api/${cohortName}`;
 
-// get all parties
-const getAllParties = async () => {
+const fetchAllPlayers = async () => {
   try {
-    const response = await fetch(`${PARTIES_API_URL}/${id}`);
-    const parties = await response.json();
-    return parties;
-  } catch (error) {
-    console.error(error);
+    const response = await fetch(`${APIURL}/players`);
+    const playersData = await response.json();
+    console.log(playersData);
+    players = playersData.data.players;
+    console.log(players);
+    return players;
+  } catch (err) {
+    console.error("Uh oh, trouble fetching players!", err);
   }
 };
 
-// get single party by id
-const getPartyById = async (id) => {
+const fetchSinglePlayer = async (playerId) => {
   try {
-    const response = await fetch(`${PARTIES_API_URL}/${id}`);
-    const party = await response.json();
-    return party;
-  } catch (error) {
-    console.error(error);
+    const response = await fetch(`${APIURL}/players/${playerId}`);
+    let playerData = await response.json();
+    return playerData;
+  } catch (err) {
+    console.error(`Oh no, trouble fetching player #${playerId}!`, err);
   }
 };
 
-// delete party
-const deleteParty = async (id) => {
-  // your code here
-};
-
-// render a single party by id
-const renderSinglePartyById = async (id) => {
+const addNewPlayer = async (playerObj) => {
   try {
-    // fetch party details from server
-    const party = await getPartyById(id);
-
-    // GET - /api/workshop/guests/party/:partyId - get guests by party id
-    const guestsResponse = await fetch(`${GUESTS_API_URL}/party/${id}`);
-    const guests = await guestsResponse.json();
-
-    // GET - /api/workshop/rsvps/party/:partyId - get RSVPs by partyId
-    const rsvpsResponse = await fetch(`${RSVPS_API_URL}/party/${id}`);
-    const rsvps = await rsvpsResponse.json();
-
-    // GET - get all gifts by party id - /api/workshop/parties/gifts/:partyId -BUGGY?
-    // const giftsResponse = await fetch(`${PARTIES_API_URL}/party/gifts/${id}`);
-    // const gifts = await giftsResponse.json();
-
-    // create new HTML element to display party details
-    const partyDetailsElement = document.createElement("div");
-    partyDetailsElement.classList.add("party-details");
-    partyDetailsElement.innerHTML = `
-            <h2>${party.title}</h2>
-            <p>${party.event}</p>
-            <p>${party.city}</p>
-            <p>${party.state}</p>
-            <p>${party.country}</p>
-            <h3>Guests:</h3>
-            <ul>
-            ${guests
-              .map(
-                (guest, index) => `
-              <li>
-                <div>${guest.name}</div>
-                <div>${rsvps[index].status}</div>
-              </li>
-            `
-              )
-              .join("")}
-          </ul>
-          
-
-
-            <button class="close-button">Close</button>
-        `;
-    partyContainer.appendChild(partyDetailsElement);
-
-    // add event listener to close button
-    const closeButton = partyDetailsElement.querySelector(".close-button");
-    closeButton.addEventListener("click", () => {
-      partyDetailsElement.remove();
+    const response = await fetch(`${APIURL}/players`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(playerObj),
     });
-  } catch (error) {
-    console.error(error);
+    const result = await response.json();
+    if (result.ok) {
+      console.log("Player added successfully.");
+    } else {
+      console.error("Failed to add player. Status:", result.status);
+    }
+  } catch (err) {
+    console.error("Oops, something went wrong with adding that player!", err);
   }
 };
 
-// render all parties
-const renderParties = async (parties) => {
+const removePlayer = async (playerId) => {
   try {
-    partyContainer.innerHTML = "";
-    parties.forEach((party) => {
-      const partyElement = document.createElement("div");
-      partyElement.classList.add("party");
-      partyElement.innerHTML = `
-                <h2>${party.name}</h2>
-                <p>${party.description}</p>
-                <p>${party.date}</p>
-                <p>${party.time}</p>
-                <p>${party.location}</p>
-                <button class="details-button" data-id="${party.id}">See Details</button>
-                <button class="delete-button" data-id="${party.id}">Delete</button>
-            `;
-      partyContainer.appendChild(partyElement);
+    const response = await fetch(`${APIURL}/players/${playerId}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
 
-      // see details
-      const detailsButton = partyElement.querySelector(".details-button");
+    if (response.ok) {
+      console.log("Data deleted successfully.");
+    }
+  } catch (err) {
+    console.error(
+      `Whoops, trouble removing player #${playerId} from the roster!`,
+      err
+    );
+  }
+};
+
+const renderAllPlayers = async () => {
+  try {
+    playerContainer.innerHTML = "";
+
+    const playerList = await fetchAllPlayers();
+
+    playerList.forEach((players) => {
+      const playerElement = document.createElement("div");
+      playerElement.classList.add("player-card"); // Add a class for styling purposes
+      playerElement.innerHTML = `
+      <h2>${players.name}</h2>
+      <p>${players.breed}</p>
+      <p>${players.status}</p>
+      <img src="${players.imageUrl}" alt="${players.name}" style="width: 200px; height: 200px;">
+      <button class="details-button" data-id="${players.id}">See Details</button>
+      <button class="delete-button" data-id="${players.id}">Delete</button>
+      `;
+      playerContainer.appendChild(playerElement);
+
+      // See details
+      const detailsButton = playerElement.querySelector(".details-button");
       detailsButton.addEventListener("click", async (event) => {
-        // your code here
+        await renderSinglePlayerById(players);
       });
 
-      // delete party
-      const deleteButton = partyElement.querySelector(".delete-button");
-      deleteButton.addEventListener("click", async (event) => {
-        // your code here
+      // Delete player
+      const deleteButton = playerElement.querySelector(".delete-button");
+      deleteButton.addEventListener("click", async () => {
+        await removePlayer(players.id);
+        await renderAllPlayers();
       });
     });
-  } catch (error) {
-    console.error(error);
+  } catch (err) {
+    console.error("Uh oh, trouble rendering players!", err);
   }
 };
 
-// init function
+const renderSinglePlayerById = async (player) => {
+  try {
+    // Render single player details to the DOM
+    playerContainer.innerHTML = "";
+
+    const playerDetailsElement = document.createElement("div");
+    playerDetailsElement.classList.add("player-details"); // Add a class for styling purposes
+    playerDetailsElement.innerHTML = `
+      <h2>${player.name}</h2>
+      <p>${player.breed}</p>
+      <button class="close-button">Close</button>
+    `;
+    playerContainer.appendChild(playerDetailsElement);
+
+    // Add event listener to the close button
+    const closeButton = playerDetailsElement.querySelector(".close-button");
+    closeButton.addEventListener("click", async () => {
+      await renderAllPlayers();
+    });
+  } catch (err) {
+    console.error(`Oh no, trouble rendering player #${player.id}!`, err);
+  }
+};
+
+// Rest of your code...
+
+/**
+ * It renders a form to the DOM, and when the form is submitted, it adds a new player to the database,
+ * fetches all players from the database, and renders them to the DOM.
+ */
+const renderNewPlayerForm = async () => {
+  try {
+    newPlayerFormContainer.innerHTML = "";
+    const newPlayersForm = document.createElement("div");
+    newPlayersForm.innerHTML = `
+        <form id="myForm" action="/submit" method="post">
+        <label for="name">Name:</label>
+        <input type="text" id="name" name="name" required><br><br>
+        
+        <label for="breed">Breed:</label>
+        <input type="text" id="breed" name="breed" required><br><br>
+        
+        <input type="submit" value="Submit">
+        </form>
+        
+      `;
+    newPlayerFormContainer.appendChild(newPlayersForm);
+
+    document.getElementById("myForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      let newName = document.getElementById("name").value;
+      let newBreed = document.getElementById("breed").value;
+      let newPlayer = {
+        name: newName,
+        breed: newBreed,
+      };
+      await addNewPlayer(newPlayer);
+      await renderAllPlayers();
+      // Reset the form fields
+      document.getElementById("myForm").reset();
+    });
+  } catch (err) {
+    console.error("Uh oh, trouble rendering the new player form!", err);
+  }
+};
+
 const init = async () => {
-  // your code here
+  await renderAllPlayers();
+  await renderNewPlayerForm();
 };
 
 init();
